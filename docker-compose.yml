@@ -1,0 +1,13 @@
+services:
+  mailtrap-local:
+    image: mailtrap/mailtrap-local:latest
+    ports:
+      # SMTP — what the app sends to
+      - '3535:3535'
+      # web UI and JSON API — what you open in a browser
+      - '3550:3550'
+    volumes:
+      - mailtrap-local:/var/lib/mailtrap-local
+
+volumes:
+  mailtrap-local:

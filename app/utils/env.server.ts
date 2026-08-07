@@ -12,6 +12,9 @@ const schema = z.object({
 	SENTRY_DSN: z.string().optional(),
 	// If you plan to use Resend, remove the .optional()
 	RESEND_API_KEY: z.string().optional(),
+	// When set, email is sent to this SMTP server instead of Resend
+	SMTP_HOST: z.string().optional(),
+	SMTP_PORT: z.string().optional(),
 	// If you plan to use GitHub auth, remove the .optional()
 	GITHUB_CLIENT_ID: z.string().optional(),
 	GITHUB_CLIENT_SECRET: z.string().optional(),

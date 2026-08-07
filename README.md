@@ -1,54 +1,91 @@
-<div align="center">
-  <h1 align="center"><a href="https://www.epicweb.dev/epic-stack">The Epic Stack 🚀</a></h1>
-  <strong align="center">
-    Ditch analysis paralysis and start shipping Epic Web apps.
-  </strong>
-  <p>
-    This is an opinionated project starter and reference that allows teams to
-    ship their ideas to production faster and on a more stable foundation based
-    on the experience of <a href="https://kentcdodds.com">Kent C. Dodds</a> and
-    <a href="https://github.com/epicweb-dev/epic-stack/graphs/contributors">contributors</a>.
-  </p>
-</div>
+# Epic Stack + Mailtrap Local
+
+An example of the Epic Stack sending mail through a local SMTP server in
+development, so the emails the app sends can be opened and read in a browser.
+
+## Why do this?
+
+Out of the box the Epic Stack mocks the Resend API with
+[MSW](https://mswjs.io/): the email is logged to the terminal as JSON and
+written to `tests/fixtures/email/` for the e2e tests to read. That works well,
+and the tests here still rely on it.
+
+What it doesn't give you is the rendered message. The Epic Stack builds its
+emails with [React Email](https://react.email/) components, and a JSON blob in
+the terminal tells you nothing about how the result actually looks — so tweaking
+an email template means reading HTML in a log line.
+
+This example points the app's email at
+[Mailtrap Local](https://github.com/mailtrap/mailtrap-local) instead, which
+gives you:
+
+- the rendered HTML, the plain-text part, the headers and the raw source of
+  every message the app sends
+- an HTML compatibility check, which flags CSS the major mail clients don't
+  support — the kind of thing you'd otherwise find out after sending
+- a real SMTP hop, so the sending path is exercised rather than intercepted
+
+Mailtrap Local is MIT-licensed and ships as a single self-contained binary. It
+listens for SMTP on port `3535` and serves its web UI and JSON API on port
+`3550`.
+
+## Setup
+
+Copy the env file and install:
 
 ```sh
-npx epicli
+cp .env.example .env
+npm install
+npm run setup
 ```
 
-[![The Epic Stack](https://github-production-user-asset-6210df.s3.amazonaws.com/1500684/246885449-1b00286c-aa3d-44b2-9ef2-04f694eb3592.png)](https://www.epicweb.dev/epic-stack)
+Start Mailtrap Local:
 
-[The Epic Stack](https://www.epicweb.dev/epic-stack)
+```sh
+docker compose up -d
+```
 
-<hr />
+Or, without Docker:
 
-## Watch Kent's Introduction to The Epic Stack
+```sh
+brew tap mailtrap/local
+brew install mailtrap-local
+brew services start mailtrap-local
+```
 
-[![Epic Stack Talk slide showing Flynn Rider with knives, the text "I've been around and I've got opinions" and Kent speaking in the corner](https://github-production-user-asset-6210df.s3.amazonaws.com/1500684/277818553-47158e68-4efc-43ae-a477-9d1670d4217d.png)](https://www.epicweb.dev/talks/the-epic-stack)
+Then start the app:
 
-["The Epic Stack" by Kent C. Dodds](https://www.epicweb.dev/talks/the-epic-stack)
+```sh
+npm run dev
+```
 
-## Docs
+Sign up at http://localhost:3000/signup and the welcome email shows up at
+**http://127.0.0.1:3550**. Forgot-password and change-email go to the same
+place.
 
-[Read the docs](https://github.com/epicweb-dev/epic-stack/blob/main/docs)
-(please 🙏).
+## What changed from the stock Epic Stack
 
-## Support
+Compare against the `init` commit to see the whole diff. In short:
 
-- 🆘 Join the
-  [discussion on GitHub](https://github.com/epicweb-dev/epic-stack/discussions)
-  and the [KCD Community on Discord](https://kcd.im/discord).
-- 💡 Create an
-  [idea discussion](https://github.com/epicweb-dev/epic-stack/discussions/new?category=ideas)
-  for suggestions.
-- 🐛 Open a [GitHub issue](https://github.com/epicweb-dev/epic-stack/issues) to
-  report a bug.
+- **`app/utils/email.server.ts`** — when `SMTP_HOST` is set, `sendEmail` sends
+  via nodemailer and returns early. The Resend branch below it is untouched, so
+  production behaviour does not change.
+- **`app/utils/env.server.ts`** — `SMTP_HOST` and `SMTP_PORT` added to the zod
+  schema, both optional.
+- **`.env.example`** — sets `SMTP_HOST` / `SMTP_PORT`. Comment them out to go
+  back to Resend.
+- **`docker-compose.yml`** — new, runs Mailtrap Local.
+- **`package.json`** — adds `nodemailer` and `@types/nodemailer`.
+- **`playwright.config.ts`** — blanks `SMTP_HOST` for the e2e web server, so the
+  tests keep reading emails from the MSW mock's fixtures.
 
-## Branding
+Because the switch is a single env var, this stays a drop-in: unset `SMTP_HOST`
+and you have the stock stack back, mocks and all.
 
-Want to talk about the Epic Stack in a blog post or talk? Great! Here are some
-assets you can use in your material:
-[EpicWeb.dev/brand](https://epicweb.dev/brand)
+## Tests
 
-## Thanks
-
-You rock 🪨
+`npm run validate` passes. The e2e tests read emails from
+`tests/fixtures/email/`, which the MSW Resend mock writes — so they need to stay
+on the mock rather than go out over SMTP. `playwright.config.ts` blanks
+`SMTP_HOST` for the test web server to keep that true even though `.env` sets
+it.

@@ -37,6 +37,10 @@ export default defineConfig({
 		env: {
 			PORT,
 			NODE_ENV: 'test',
+			// the e2e tests read emails out of tests/fixtures/email, which the MSW
+			// Resend mock writes. dotenv won't override an already-set variable, so
+			// blanking this keeps the tests on the mock instead of sending to SMTP.
+			SMTP_HOST: '',
 		},
 	},
 })

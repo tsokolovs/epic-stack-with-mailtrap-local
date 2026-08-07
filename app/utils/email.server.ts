@@ -1,4 +1,5 @@
 import { render } from '@react-email/components'
+import nodemailer from 'nodemailer'
 import { type ReactElement } from 'react'
 import { z } from 'zod'
 
@@ -37,6 +38,12 @@ export async function sendEmail({
 		from,
 		...options,
 		...(react ? await renderReactEmail(react) : null),
+	}
+
+	// when SMTP_HOST is set, send through a local SMTP server instead of Resend
+	// so the message can be opened in a browser during development
+	if (process.env.SMTP_HOST) {
+		return sendEmailViaSmtp(email)
 	}
 
 	// feel free to remove this condition once you've set up resend
@@ -86,6 +93,40 @@ export async function sendEmail({
 				} satisfies ResendError,
 			} as const
 		}
+	}
+}
+
+async function sendEmailViaSmtp(email: {
+	from: string
+	to: string
+	subject: string
+	html?: string
+	text?: string
+}) {
+	const transport = nodemailer.createTransport({
+		host: process.env.SMTP_HOST,
+		port: Number(process.env.SMTP_PORT ?? 3535),
+		// a local catcher has no TLS and no credentials
+		secure: false,
+		tls: { rejectUnauthorized: false },
+	})
+
+	try {
+		const info = await transport.sendMail(email)
+		return {
+			status: 'success',
+			data: { id: info.messageId },
+		} as const
+	} catch (error) {
+		console.error(`Could not send email to ${process.env.SMTP_HOST}:`, error)
+		return {
+			status: 'error',
+			error: {
+				name: 'SmtpError',
+				message: error instanceof Error ? error.message : 'Unknown Error',
+				statusCode: 500,
+			} satisfies ResendError,
+		} as const
 	}
 }
 
