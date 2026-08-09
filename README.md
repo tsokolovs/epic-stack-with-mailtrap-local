@@ -25,9 +25,9 @@ gives you:
   support — the kind of thing you'd otherwise find out after sending
 - a real SMTP hop, so the sending path is exercised rather than intercepted
 
-Mailtrap Local is MIT-licensed and ships as a single self-contained binary. It
-listens for SMTP on port `3535` and serves its web UI and JSON API on port
-`3550`.
+Mailtrap Local is MIT-licensed. It can be run via Docker, and also ships as a
+single self-contained binary. It listens for SMTP on port `3535` and serves its
+web UI and JSON API on port `3550`.
 
 The stock Epic Stack signup email, caught and rendered:
 
@@ -88,8 +88,15 @@ and you have the stock stack back, mocks and all.
 
 ## Tests
 
-`npm run validate` passes. The e2e tests read emails from
+`npm run validate` passes. The stock e2e tests read emails from
 `tests/fixtures/email/`, which the MSW Resend mock writes — so they need to stay
 on the mock rather than go out over SMTP. `playwright.config.ts` blanks
 `SMTP_HOST` for the test web server to keep that true even though `.env` sets
 it.
+
+That leaves the SMTP branch itself uncovered, so this example adds
+`tests/e2e/mailtrap-local.test.ts`: it sends through `sendEmail`, then reads the
+message back over Mailtrap Local's JSON API on port `3550` and checks the
+sender, recipient and rendered body. It skips itself when nothing is listening
+on that port, so `npm run validate` still passes if you haven't started the
+container.
