@@ -94,6 +94,14 @@ jobs:
     name: 🎭 Playwright
     runs-on: ubuntu-22.04
     timeout-minutes: 60
+    services:
+      # so tests/e2e/mailtrap-local.test.ts actually runs here instead of
+      # skipping itself — it needs SMTP on 3535 and the JSON API on 3550
+      mailtrap-local:
+        image: mailtrap/mailtrap-local:latest
+        ports:
+          - 3535:3535
+          - 3550:3550
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v4
@@ -131,6 +139,17 @@ jobs:
 
       - name: 🏗 Build
         run: npm run build
+
+      # the SMTP test skips itself when nothing answers on 3550, so fail here
+      # rather than let a slow start turn into a silent skip
+      - name: 📬 Wait for the SMTP catcher
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3550/api/v1/version; then exit 0; fi
+            sleep 2
+          done
+          echo "mailtrap-local never became ready"
+          exit 1
 
       - name: 🎭 Playwright tests
         run: npx playwright test
