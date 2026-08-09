@@ -29,6 +29,10 @@ Mailtrap Local is MIT-licensed and ships as a single self-contained binary. It
 listens for SMTP on port `3535` and serves its web UI and JSON API on port
 `3550`.
 
+The stock Epic Stack signup email, caught and rendered:
+
+![The Welcome to Epic Notes! onboarding email open in Mailtrap Local, showing the rendered HTML with a verification code and onboarding link, and an HTML Check tab flagging five client-support issues](other/screenshots/onboarding-email.png)
+
 ## Setup
 
 Copy the env file and install:
