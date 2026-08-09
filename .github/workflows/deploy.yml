@@ -146,8 +146,9 @@ jobs:
   container:
     name: 📦 Prepare Container
     runs-on: ubuntu-24.04
-    # only prepare container on pushes
-    if: ${{ github.event_name == 'push' }}
+    # this example isn't deployed anywhere, so the container and deploy jobs are
+    # turned off — lint, typecheck and the tests above still run
+    if: false
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v4
@@ -193,8 +194,8 @@ jobs:
     name: 🚀 Deploy
     runs-on: ubuntu-24.04
     needs: [lint, typecheck, vitest, playwright, container]
-    # only deploy on pushes
-    if: ${{ github.event_name == 'push' }}
+    # see the container job above — nothing to deploy for an example repo
+    if: false
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v4
